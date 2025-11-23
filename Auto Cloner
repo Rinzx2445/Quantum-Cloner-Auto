@@ -1,0 +1,79 @@
+spawn(function()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+
+    local player = Players.LocalPlayer
+    while not player do
+        RunService.Heartbeat:Wait()
+        player = Players.LocalPlayer
+    end
+
+    local character = player.Character or player.CharacterAdded:Wait()
+    local backpack = player:WaitForChild("Backpack")
+
+    local toolName = "Quantum Cloner"
+
+    local useItemEvent = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/UseItem")
+    local teleportEvent = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/QuantumCloner/OnTeleport")
+
+    local debounce = false
+
+    local function forceEquipQuantumCloner()
+        local currentTool = character:FindFirstChildOfClass("Tool")
+        if currentTool then
+            currentTool.Parent = backpack
+        end
+
+        local cloner = backpack:FindFirstChild(toolName)
+        if not cloner then
+            warn("No tienes el Quantum Cloner en mochila.")
+            return nil, currentTool
+        end
+        cloner.Parent = character
+
+        local timer = 0
+        while cloner.Parent ~= character and timer < 1 do
+            RunService.Heartbeat:Wait()
+            timer = timer + RunService.Heartbeat:Wait()
+        end
+
+        return cloner, currentTool
+    end
+
+    local function cloneAndTeleport()
+        if debounce then return end
+        debounce = true
+
+        local cloner, previousTool = forceEquipQuantumCloner()
+        if not cloner then
+            debounce = false
+            return
+        end
+
+        task.wait(0.2)
+        useItemEvent:FireServer()
+        task.wait(0.2)
+        teleportEvent:FireServer()
+        task.wait(0.1)
+
+        if cloner and cloner.Parent == character then
+            cloner.Parent = backpack
+        end
+
+        if previousTool then
+            previousTool.Parent = character
+        end
+
+        task.wait(0.3)
+        debounce = false
+    end
+
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == Enum.KeyCode.F then
+            cloneAndTeleport()
+        end
+    end)
+end)
